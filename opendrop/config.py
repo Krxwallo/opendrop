@@ -70,7 +70,7 @@ class AirDropConfig:
         self.discovery_report = os.path.join(self.airdrop_dir, "discover.last.json")
 
         if host_name is None:
-            host_name = socket.gethostname()
+            host_name = "YOUR_CUSTOM_HOSTNAME" # Krxwallo - comment out: socket.gethostname()
         self.host_name = host_name
         if computer_name is None:
             computer_name = host_name
@@ -104,7 +104,7 @@ class AirDropConfig:
             | AirDropReceiverFlags.SUPPORTS_DISCOVER_MAYBE
         )
 
-        self.root_ca_file = resource_filename("opendrop", "certs/apple_root_ca.pem")
+        self.root_ca_file = os.path.join(self.airdrop_dir, "apple_root_ca.pem") # Krxwallo - remove resource_filename("opendrop", "certs/...")
         if not os.path.exists(self.root_ca_file):
             raise FileNotFoundError(
                 f"Need Apple root CA certificate: {self.root_ca_file}"
@@ -128,7 +128,7 @@ class AirDropConfig:
             logger.debug("No Apple ID Validation Record found")
 
     def create_default_key(self):
-        logger.info(f"Create new self-signed certificate in {self.key_dir}")
+        logger.info(f"Creating new self-signed certificate in {self.key_dir}") # Krxwallo - ing
         if not os.path.exists(self.key_dir):
             os.makedirs(self.key_dir)
         subprocess.run(

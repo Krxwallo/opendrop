@@ -22,7 +22,6 @@ import ipaddress
 import os
 
 import ifaddr
-from libarchive.entry import ArchiveEntry, new_archive_entry
 from libarchive.ffi import (  # pylint: disable=no-name-in-module
     ARCHIVE_EOF,
     entry_clear,
@@ -35,7 +34,8 @@ from libarchive.ffi import (  # pylint: disable=no-name-in-module
     write_header,
 )
 from libarchive.write import ArchiveWrite, new_archive_read_disk
-from PIL import ExifTags, Image
+from libarchive.entry import ArchiveEntry, new_archive_entry
+# from PIL import ExifTags, Image # Krxwallo - commented out
 
 
 class AirDropUtil:

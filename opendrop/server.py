@@ -23,6 +23,7 @@ import platform
 import plistlib
 import socket
 import time
+import threading # Krxwallo
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import libarchive
@@ -30,7 +31,7 @@ import libarchive.extract
 import libarchive.read
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
-from .util import AirDropUtil
+from util import AirDropUtil
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class AirDropServer:
         # Use IPv6
         self.serveraddress = ("::", self.config.port)
         self.ServerClass = HTTPServerV6
-        self.ServerClass.allow_reuse_address = False
+        self.ServerClass.allow_reuse_address = True
 
         self.ip_addr = AirDropUtil.get_ip_for_interface(
             self.config.interface, ipv6=True
@@ -94,13 +95,15 @@ class AirDropServer:
         self.zeroconf.register_service(self.service_info)
 
     def _init_server(self):
-        try:
-            httpd = self.ServerClass(self.serveraddress, self.Handler)
-        except OSError:
-            # Address in use. Change port
-            self.config.port = self.config.port + 1
-            self.serveraddress = (self.serveraddress[0], self.config.port)
-            httpd = self.ServerClass(self.serveraddress, self.Handler)
+        # Krxwallo - retry more than once
+        for retry in range(0, 30):
+            try:
+                httpd = self.ServerClass(self.serveraddress, self.Handler)
+                break
+            except OSError:
+                # Address in use. Change port
+                self.config.port = self.config.port + 1
+                self.serveraddress = (self.serveraddress[0], self.config.port)
 
         # Adapt socket for awdl0
         if self.config.interface == "awdl0" and platform.system() == "Darwin":
@@ -111,9 +114,26 @@ class AirDropServer:
         )
 
         return httpd
+        
+    def announcer_loop(self):
+        while True:
+            logger.info(
+                f"Update-announcing service: host {self.config.host_name}, address {self.ip_addr}, port {self.config.port}"
+            )
+            self.zeroconf.unregister_all_services()
+            time.sleep(0.3)
+            try:
+              self.zeroconf.register_service(self.service_info)
+            except:
+              logger.error("Error while registering zeroconf service")
+            time.sleep(1)
 
     def start_server(self):
         logger.info("Starting HTTPS server")
+        # Krxwallo start
+        announcer = threading.Thread(target=self.announcer_loop)
+        announcer.start()
+        # Krxwallo end
         self.http_server.serve_forever()
 
     def stop(self):
